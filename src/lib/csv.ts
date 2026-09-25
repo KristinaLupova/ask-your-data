@@ -26,8 +26,9 @@ export interface Dataset {
 export class CsvError extends Error {}
 
 const INTEGER = /^-?\d+$/;
-const NUMBER = /^-?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i;
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}([ T]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?)?$/;
+const NUMBER = /^-?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?(e[+-]?\d+)?$/i;
+const ISO_DATE =
+  /^\d{4}-\d{2}-\d{2}([ T]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?)?$/;
 const BOOLEAN = /^(true|false|yes|no)$/i;
 
 function matchesType(value: string, type: ColumnType): boolean {
@@ -50,7 +51,9 @@ export function detectColumnType(values: string[]): ColumnType {
   const filled = values.map((v) => v.trim()).filter((v) => v !== "");
   if (filled.length === 0) return "string";
   const candidates: ColumnType[] = ["boolean", "integer", "number", "date"];
-  return candidates.find((t) => filled.every((v) => matchesType(v, t))) ?? "string";
+  return (
+    candidates.find((t) => filled.every((v) => matchesType(v, t))) ?? "string"
+  );
 }
 
 export function parseCsvText(text: string, name: string): Dataset {
@@ -68,7 +71,8 @@ export function parseCsvText(text: string, name: string): Dataset {
 
   const fields = result.meta.fields ?? [];
   if (fields.length === 0) throw new CsvError("No header row found.");
-  if (result.data.length === 0) throw new CsvError("The file has a header but no data rows.");
+  if (result.data.length === 0)
+    throw new CsvError("The file has a header but no data rows.");
 
   const malformedRowCount = new Set(
     result.errors.filter((e) => e.type === "FieldMismatch").map((e) => e.row),
@@ -98,7 +102,9 @@ export async function parseCsvFile(file: File): Promise<Dataset> {
     throw new CsvError("Please choose a .csv file.");
   }
   if (file.size > MAX_FILE_BYTES) {
-    throw new CsvError(`This file is ${formatBytes(file.size)}. The limit is 5 MB.`);
+    throw new CsvError(
+      `This file is ${formatBytes(file.size)}. The limit is 5 MB.`,
+    );
   }
   return parseCsvText(await file.text(), file.name);
 }

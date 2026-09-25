@@ -21,11 +21,27 @@ describe("detectColumnType", () => {
   it("rejects impossible dates", () => {
     expect(detectColumnType(["2026-13-45"])).toBe("string");
   });
+
+  it("accepts thousands separators", () => {
+    expect(detectColumnType(["1,234.56", "12,000", "99.50"])).toBe("number");
+  });
+
+  it("rejects malformed comma groups", () => {
+    expect(detectColumnType(["1,2,3"])).toBe("string");
+    expect(detectColumnType(["12,34"])).toBe("string");
+  });
+
+  it("leaves European decimal commas as text (out of scope)", () => {
+    expect(detectColumnType(["12,00", "23,45"])).toBe("string");
+  });
 });
 
 describe("parseCsvText", () => {
   it("parses columns, types, rows and empty counts", () => {
-    const ds = parseCsvText("id,price,day\n1,9.99,2026-01-01\n2,,2026-01-02\n", "t.csv");
+    const ds = parseCsvText(
+      "id,price,day\n1,9.99,2026-01-01\n2,,2026-01-02\n",
+      "t.csv",
+    );
     expect(ds.rows).toHaveLength(2);
     expect(ds.columns).toEqual([
       { name: "id", type: "integer", emptyCount: 0 },
@@ -61,7 +77,9 @@ describe("parseCsvText", () => {
 
 describe("parseCsvFile", () => {
   it("rejects non-CSV files and files over 5 MB", async () => {
-    await expect(parseCsvFile(new File(["x"], "data.xlsx"))).rejects.toThrow(".csv");
+    await expect(parseCsvFile(new File(["x"], "data.xlsx"))).rejects.toThrow(
+      ".csv",
+    );
     const big = new File(["x"], "big.csv");
     Object.defineProperty(big, "size", { value: 6 * 1024 * 1024 });
     await expect(parseCsvFile(big)).rejects.toThrow("5 MB");
